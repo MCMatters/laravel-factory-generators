@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace McMatters\FactoryGenerators;
+namespace McMatters\FactoryGenerators\Console\Commands;
 
 use Doctrine\DBAL\Schema\Column;
 use Illuminate\Console\Command;
