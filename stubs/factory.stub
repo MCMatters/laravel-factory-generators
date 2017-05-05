@@ -1,0 +1,9 @@
+<?php
+
+declare(strict_types = 1);
+
+$factory->define({DummyClass}::class, function (Faker\Generator $faker) {
+    return [
+{DummyAttributes}
+    ];
+});

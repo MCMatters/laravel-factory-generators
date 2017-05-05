@@ -1,0 +1,28 @@
+{
+    "name": "mcmatters/laravel-factory-generators",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dmitry Borzyonok",
+            "email": "dima.matters@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0",
+        "illuminate/support": "5.*",
+        "illuminate/console": "5.*",
+        "illuminate/database": "5.*",
+        "illuminate/filesystem": "5.*",
+        "illuminate/config": "5.*",
+        "symfony/class-loader": "^3.2",
+        "doctrine/dbal": "^2.5"
+    },
+    "require-dev": {
+        "fzaninotto/faker": "~1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "McMatters\\FactoryGenerators\\": "src/"
+        }
+    }
+}
