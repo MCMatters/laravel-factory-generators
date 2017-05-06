@@ -129,7 +129,8 @@ class Generate extends Command
             /** @var Column $column */
             foreach ($columns as $column) {
                 $columnName = $column->getName();
-                if (in_array($columnName, $skipColumns, true) ||
+                if ($column->getAutoincrement() ||
+                    in_array($columnName, $skipColumns, true) ||
                     (isset($skipModelColumns[$model]) &&
                         in_array($columnName, $skipModelColumns[$model], true))
                 ) {
@@ -223,8 +224,21 @@ class Generate extends Command
     {
         $attributes = [];
 
-        foreach ($content as $key => $attribute) {
-            $attributes[] = "\t\t'{$key}' => {$attribute},";
+        if (config('factory-generators.align_array_keys', false)) {
+            $max = 0;
+
+            foreach ($content as $key => $attribute) {
+                $max = max($max, strlen($key));
+            }
+
+            foreach ($content as $key => $attribute) {
+                $gaps = str_repeat(' ', $max - strlen($key));
+                $attributes[] = "\t\t'{$key}'{$gaps} => {$attribute},";
+            }
+        } else {
+            foreach ($content as $key => $attribute) {
+                $attributes[] = "\t\t'{$key}' => {$attribute},";
+            }
         }
 
         return implode("\n", $attributes);
