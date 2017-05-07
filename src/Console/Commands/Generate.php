@@ -202,16 +202,28 @@ class Generate extends Command
      */
     protected function publishFactories(array $models)
     {
-        $prefix = config('factory-generators.prefix');
-        $suffix = config('factory-generators.suffix');
+        $config = config('factory-generators');
+        $factoryPath = rtrim(array_get($config, 'folders.factories'), '/').DIRECTORY_SEPARATOR;
 
         foreach ($models as $model => $data) {
-            $fileName = config('factory-generators.folders.factories').'/'.class_basename($model);
+            $path = $factoryPath;
             $content = $this->replaceStub(
                 $model,
                 $this->getContentAttributes($data)
             );
-            File::put("{$prefix}{$fileName}{$suffix}.php", $content);
+
+            $modelBaseName = class_basename($model);
+            $fileName = "{$config['prefix']}{$modelBaseName}{$config['suffix']}.php";
+
+            if ($config['follow_subdirectories']) {
+                $partNamespace = substr($model, strlen($config['model_namespace']) + 1);
+                $subNamespace = substr($partNamespace, 0, -strlen($modelBaseName) - 1);
+                $path .= str_replace('\\', DIRECTORY_SEPARATOR, $subNamespace);
+
+                $this->makeSubdirectories($path);
+            }
+
+            File::put("{$path}/{$fileName}", $content);
         }
     }
 
@@ -257,5 +269,15 @@ class Generate extends Command
             [$model, $attributes],
             $this->stub
         );
+    }
+
+    /**
+     * @param string $path
+     */
+    protected function makeSubdirectories(string $path)
+    {
+        if (!File::isDirectory($path)) {
+            File::makeDirectory($path, 0777, true, true);
+        }
     }
 }
