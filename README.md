@@ -19,7 +19,7 @@ Include the service provider within your `config/app.php` file.
 Publish the configuration.
 
 ```bash
-php artisan vendor:publish --provider=McMatters\FactoryGenerators\ServiceProvider
+php artisan vendor:publish --provider="McMatters\FactoryGenerators\ServiceProvider"
 ```
 
 Then open the `config/nullable-attributes.php` and configure paths where your models are locating.
