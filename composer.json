@@ -9,13 +9,13 @@
     ],
     "require": {
         "php": ">=7.0",
-        "illuminate/support": "^5.2",
+        "composer/composer": "^1.5",
+        "doctrine/dbal": "^2.5",
+        "illuminate/config": "^5.2",
         "illuminate/console": "^5.2",
         "illuminate/database": "^5.2",
         "illuminate/filesystem": "^5.2",
-        "illuminate/config": "^5.2",
-        "symfony/class-loader": "^3.2",
-        "doctrine/dbal": "^2.5"
+        "illuminate/support": "^5.2"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4"

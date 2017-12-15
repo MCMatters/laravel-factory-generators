@@ -4,8 +4,8 @@ declare(strict_types = 1);
 
 return [
     'folders'               => [
-        'models'    => base_path('app/Models'),
-        'factories' => database_path('factories'),
+        'models'    => $app->basePath().'/app/Models',
+        'factories' => $app->databasePath('factories'),
     ],
 
     // Enable this option if your models are in subdirectories

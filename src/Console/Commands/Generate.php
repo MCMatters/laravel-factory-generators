@@ -4,17 +4,23 @@ declare(strict_types = 1);
 
 namespace McMatters\FactoryGenerators\Console\Commands;
 
+use Composer\Autoload\ClassMapGenerator;
 use Doctrine\DBAL\Schema\Column;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\{
+    Config\Repository as Config, Container\Container, Filesystem\FileNotFoundException
+};
 use Illuminate\Database\Eloquent\{
     Factory, Model, Relations\Pivot
 };
-use Illuminate\Support\Facades\{
-    DB, File
-};
+use Illuminate\Support\Arr;
 use ReflectionClass;
 use ReflectionException;
-use Symfony\Component\ClassLoader\ClassMapGenerator;
+use RuntimeException;
+use const false, null, true, DIRECTORY_SEPARATOR;
+use function array_merge, class_basename, file_get_contents, file_put_contents,
+    implode, in_array, is_dir, max, mkdir, rtrim, strlen, str_repeat,
+    str_replace, substr;
 
 /**
  * Class Generate
@@ -34,21 +40,38 @@ class Generate extends Command
     protected $description = 'Generate factories for models';
 
     /**
+     * @var Container
+     */
+    protected $app;
+
+    /**
+     * @var Config
+     */
+    protected $config;
+
+    /**
      * @var string
      */
     protected $stub;
 
     /**
      * Generate constructor.
+     *
+     * @param Container $app
+     *
+     * @throws FileNotFoundException
      */
-    public function __construct()
+    public function __construct(Container $app)
     {
-        $this->stub = file_get_contents(__DIR__.'/../../../stubs/factory.stub');
+        $this->app = $app;
+        $this->config = $app->make('config');
+        $this->stub = $this->getStubContent();
         parent::__construct();
     }
 
     /**
-     * Run command.
+     * @return void
+     * @throws RuntimeException
      */
     public function handle()
     {
@@ -60,12 +83,13 @@ class Generate extends Command
 
     /**
      * @return array
+     * @throws RuntimeException
      */
     protected function getModels(): array
     {
         $models = [];
-        $dir = config('factory-generators.folders.models');
-        $skipModels = config('factory-generators.skip_models');
+        $dir = $this->config->get('factory-generators.folders.models');
+        $skipModels = $this->config->get('factory-generators.skip_models');
 
         foreach (ClassMapGenerator::createMap($dir) as $model => $path) {
             try {
@@ -94,7 +118,7 @@ class Generate extends Command
     protected function getNotDefinedModels(array $models): array
     {
         $notDefined = [];
-        $factory = app(Factory::class);
+        $factory = $this->app->make(Factory::class);
 
         foreach ($models as $model) {
             if (!$factory->offsetExists($model)) {
@@ -113,9 +137,9 @@ class Generate extends Command
     protected function mapFakeData(array $models): array
     {
         $modelColumns = [];
-        $manager = DB::getDoctrineSchemaManager();
-        $skipColumns = config('factory-generators.skip_columns');
-        $skipModelColumns = config('factory-generators.skip_model_columns');
+        $manager = $this->app->make('db')->getDoctrineSchemaManager();
+        $skipColumns = $this->config->get('factory-generators.skip_columns');
+        $skipModelColumns = $this->config->get('factory-generators.skip_model_columns');
 
         foreach ($models as $model) {
             $table = (new $model)->getTable();
@@ -129,6 +153,8 @@ class Generate extends Command
             /** @var Column $column */
             foreach ($columns as $column) {
                 $columnName = $column->getName();
+
+                // Skip autoincrementing or skipped from config columns.
                 if ($column->getAutoincrement() ||
                     in_array($columnName, $skipColumns, true) ||
                     (isset($skipModelColumns[$model]) &&
@@ -168,7 +194,7 @@ class Generate extends Command
                     'simple_array' => 'json',
                     'object'       => 'json',
                 ],
-                config('factory-generators.types')
+                $this->config->get('factory-generators.types')
             );
         }
 
@@ -199,11 +225,13 @@ class Generate extends Command
 
     /**
      * @param array $models
+     *
+     * @throws RuntimeException
      */
     protected function publishFactories(array $models)
     {
-        $config = config('factory-generators');
-        $factoryPath = rtrim(array_get($config, 'folders.factories'), '/').DIRECTORY_SEPARATOR;
+        $config = $this->config->get('factory-generators');
+        $factoryPath = rtrim(Arr::get($config, 'folders.factories'), '/').DIRECTORY_SEPARATOR;
 
         foreach ($models as $model => $data) {
             $path = $factoryPath;
@@ -223,7 +251,7 @@ class Generate extends Command
                 $this->makeSubdirectories($path);
             }
 
-            File::put("{$path}/{$fileName}", $content);
+            file_put_contents("{$path}/{$fileName}", $content);
         }
     }
 
@@ -236,7 +264,7 @@ class Generate extends Command
     {
         $attributes = [];
 
-        if (config('factory-generators.align_array_keys', false)) {
+        if ($this->config->get('factory-generators.align_array_keys', false)) {
             $max = 0;
 
             foreach ($content as $key => $attribute) {
@@ -273,11 +301,38 @@ class Generate extends Command
 
     /**
      * @param string $path
+     *
+     * @throws RuntimeException
      */
     protected function makeSubdirectories(string $path)
     {
-        if (!File::isDirectory($path)) {
-            File::makeDirectory($path, 0777, true, true);
+        if (!is_dir($path) && !@mkdir($path, 0777, true, true)) {
+            throw new RuntimeException("Cannot create subdirectory {$path}");
         }
+    }
+
+    /**
+     * @return string
+     * @throws FileNotFoundException
+     */
+    protected function getStubContent(): string
+    {
+        $stub = file_get_contents($this->getStubFolderPath().'/factory.stub');
+
+        if (false === $stub) {
+            throw new FileNotFoundException(
+                'There is a problem with getting stub content.'
+            );
+        }
+
+        return $stub;
+    }
+
+    /**
+     * @return string
+     */
+    protected function getStubFolderPath(): string
+    {
+        return __DIR__.'/../../../stubs';
     }
 }

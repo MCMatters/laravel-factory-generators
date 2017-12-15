@@ -6,6 +6,7 @@ namespace McMatters\FactoryGenerators;
 
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use McMatters\FactoryGenerators\Console\Commands\Generate;
+use const DIRECTORY_SEPARATOR;
 
 /**
  * Class ServiceProvider
@@ -15,24 +16,29 @@ use McMatters\FactoryGenerators\Console\Commands\Generate;
 class ServiceProvider extends BaseServiceProvider
 {
     /**
-     * Boot provider.
+     * @return void
      */
     public function boot()
     {
-        $this->publishes([
-            __DIR__.'/../config/factory-generators.php' => config_path(
-                'factory-generators.php'
-            ),
-        ]);
+        $configPath = __DIR__.'/../config/factory-generators.php';
+
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                $configPath => $this->app->configPath().DIRECTORY_SEPARATOR.'factory-generators.php',
+            ], 'config');
+        }
+
+        $this->mergeConfigFrom($configPath, 'factory-generators');
     }
 
     /**
-     * Register methods.
+     * @return void
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function register()
     {
-        $this->app->singleton('command.factory-generators.generate', function () {
-            return new Generate();
+        $this->app->singleton('command.factory-generators.generate', function ($app) {
+            return new Generate($app);
         });
 
         $this->commands([
