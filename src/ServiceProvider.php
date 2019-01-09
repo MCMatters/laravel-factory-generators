@@ -7,6 +7,7 @@ namespace McMatters\FactoryGenerators;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use McMatters\FactoryGenerators\Console\Commands\Generate;
 use const DIRECTORY_SEPARATOR;
+use function array_merge;
 
 /**
  * Class ServiceProvider
@@ -33,7 +34,6 @@ class ServiceProvider extends BaseServiceProvider
 
     /**
      * @return void
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function register()
     {
@@ -44,5 +44,20 @@ class ServiceProvider extends BaseServiceProvider
         $this->commands([
             'command.factory-generators.generate',
         ]);
+    }
+
+    /**
+     * @param string $path
+     * @param string $key
+     *
+     * @return void
+     */
+    protected function mergeConfigFrom($path, $key)
+    {
+        $app = $this->app;
+
+        $config = $app['config']->get($key, []);
+
+        $app['config']->set($key, array_merge(require $path, $config));
     }
 }

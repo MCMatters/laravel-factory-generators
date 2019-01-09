@@ -7,12 +7,8 @@ namespace McMatters\FactoryGenerators\Console\Commands;
 use Composer\Autoload\ClassMapGenerator;
 use Doctrine\DBAL\Schema\Column;
 use Illuminate\Console\Command;
-use Illuminate\Contracts\{
-    Config\Repository as Config, Container\Container, Filesystem\FileNotFoundException
-};
-use Illuminate\Database\Eloquent\{
-    Factory, Model, Relations\Pivot
-};
+use Illuminate\Contracts\{ Container\Container, Filesystem\FileNotFoundException};
+use Illuminate\Database\Eloquent\{Factory, Model, Relations\Pivot};
 use Illuminate\Support\Arr;
 use ReflectionClass;
 use ReflectionException;
@@ -40,12 +36,12 @@ class Generate extends Command
     protected $description = 'Generate factories for models';
 
     /**
-     * @var Container
+     * @var \Illuminate\Contracts\Container\Container
      */
     protected $app;
 
     /**
-     * @var Config
+     * @var \Illuminate\Contracts\Config\Repository
      */
     protected $config;
 
@@ -57,9 +53,9 @@ class Generate extends Command
     /**
      * Generate constructor.
      *
-     * @param Container $app
+     * @param \Illuminate\Contracts\Container\Container $app
      *
-     * @throws FileNotFoundException
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function __construct(Container $app)
     {
@@ -71,7 +67,7 @@ class Generate extends Command
 
     /**
      * @return void
-     * @throws RuntimeException
+     * @throws \RuntimeException
      */
     public function handle()
     {
@@ -83,7 +79,7 @@ class Generate extends Command
 
     /**
      * @return array
-     * @throws RuntimeException
+     * @throws \RuntimeException
      */
     protected function getModels(): array
     {
@@ -154,7 +150,7 @@ class Generate extends Command
             foreach ($columns as $column) {
                 $columnName = $column->getName();
 
-                // Skip autoincrementing or skipped from config columns.
+                // Skip auto incrementing or skipped from config columns.
                 if ($column->getAutoincrement() ||
                     in_array($columnName, $skipColumns, true) ||
                     (isset($skipModelColumns[$model]) &&
@@ -226,7 +222,8 @@ class Generate extends Command
     /**
      * @param array $models
      *
-     * @throws RuntimeException
+     * @return void
+     * @throws \RuntimeException
      */
     protected function publishFactories(array $models)
     {
@@ -302,7 +299,8 @@ class Generate extends Command
     /**
      * @param string $path
      *
-     * @throws RuntimeException
+     * @return void
+     * @throws \RuntimeException
      */
     protected function makeSubdirectories(string $path)
     {
@@ -313,7 +311,7 @@ class Generate extends Command
 
     /**
      * @return string
-     * @throws FileNotFoundException
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     protected function getStubContent(): string
     {
