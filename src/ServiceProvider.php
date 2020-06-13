@@ -1,13 +1,15 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace McMatters\FactoryGenerators;
 
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use McMatters\FactoryGenerators\Console\Commands\Generate;
-use const DIRECTORY_SEPARATOR;
+
 use function array_merge;
+
+use const DIRECTORY_SEPARATOR;
 
 /**
  * Class ServiceProvider
@@ -18,6 +20,8 @@ class ServiceProvider extends BaseServiceProvider
 {
     /**
      * @return void
+     *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function boot()
     {
@@ -51,13 +55,17 @@ class ServiceProvider extends BaseServiceProvider
      * @param string $key
      *
      * @return void
+     *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     protected function mergeConfigFrom($path, $key)
     {
         $app = $this->app;
 
-        $config = $app['config']->get($key, []);
+        $config = $this->app->make('config');
 
-        $app['config']->set($key, array_merge(require $path, $config));
+        $configuration = $config->get($key, []);
+
+        $config->set($key, array_merge(require $path, $configuration));
     }
 }

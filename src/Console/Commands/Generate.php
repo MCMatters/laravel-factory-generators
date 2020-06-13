@@ -1,11 +1,10 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace McMatters\FactoryGenerators\Console\Commands;
 
 use Composer\Autoload\ClassMapGenerator;
-use Doctrine\DBAL\Schema\Column;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\{ Container\Container, Filesystem\FileNotFoundException};
 use Illuminate\Database\Eloquent\{Factory, Model, Relations\Pivot};
@@ -13,15 +12,16 @@ use Illuminate\Support\Arr;
 use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
+
+use function class_basename, file_get_contents, file_put_contents, implode,
+    in_array, is_dir, max, mkdir, rtrim, strlen, str_repeat, str_replace, substr;
+
 use const false, null, true, DIRECTORY_SEPARATOR;
-use function array_merge, class_basename, file_get_contents, file_put_contents,
-    implode, in_array, is_dir, max, mkdir, rtrim, strlen, str_repeat,
-    str_replace, substr;
 
 /**
  * Class Generate
  *
- * @package McMatters\FactoryGenerators
+ * @package McMatters\FactoryGenerators\Console\Commands
  */
 class Generate extends Command
 {
@@ -56,18 +56,22 @@ class Generate extends Command
      * @param \Illuminate\Contracts\Container\Container $app
      *
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function __construct(Container $app)
     {
         $this->app = $app;
         $this->config = $app->make('config');
         $this->stub = $this->getStubContent();
+
         parent::__construct();
     }
 
     /**
      * @return void
+     *
      * @throws \RuntimeException
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function handle()
     {
@@ -79,6 +83,7 @@ class Generate extends Command
 
     /**
      * @return array
+     *
      * @throws \RuntimeException
      */
     protected function getModels(): array
@@ -94,7 +99,8 @@ class Generate extends Command
                 continue;
             }
 
-            if ($reflection->isInstantiable() &&
+            if (
+                $reflection->isInstantiable() &&
                 $reflection->isSubclassOf(Model::class) &&
                 !$reflection->isSubclassOf(Pivot::class) &&
                 !in_array($model, $skipModels, true)
@@ -110,6 +116,8 @@ class Generate extends Command
      * @param array $models
      *
      * @return array
+     *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     protected function getNotDefinedModels(array $models): array
     {
@@ -129,6 +137,8 @@ class Generate extends Command
      * @param array $models
      *
      * @return array
+     *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     protected function mapFakeData(array $models): array
     {
@@ -146,15 +156,18 @@ class Generate extends Command
                 continue;
             }
 
-            /** @var Column $column */
+            /** @var \Doctrine\DBAL\Schema\Column $column */
             foreach ($columns as $column) {
                 $columnName = $column->getName();
 
                 // Skip auto incrementing or skipped from config columns.
-                if ($column->getAutoincrement() ||
+                if (
+                    $column->getAutoincrement() ||
                     in_array($columnName, $skipColumns, true) ||
-                    (isset($skipModelColumns[$model]) &&
-                        in_array($columnName, $skipModelColumns[$model], true))
+                    (
+                        isset($skipModelColumns[$model]) &&
+                        in_array($columnName, $skipModelColumns[$model], true)
+                    )
                 ) {
                     continue;
                 }
@@ -178,20 +191,17 @@ class Generate extends Command
         static $types;
 
         if (null === $types) {
-            $types = array_merge(
-                [
-                    'smallint'     => 'boolean',
-                    'bigint'       => 'integer',
-                    'datetimetz'   => 'datetime',
-                    'decimal'      => 'float',
-                    'binary'       => 'text',
-                    'blob'         => 'text',
-                    'json_array'   => 'json',
-                    'simple_array' => 'json',
-                    'object'       => 'json',
-                ],
-                $this->config->get('factory-generators.types')
-            );
+            $types = $this->config->get('factory-generators.types') + [
+                'smallint' => 'boolean',
+                'bigint' => 'integer',
+                'datetimetz' => 'datetime',
+                'decimal' => 'float',
+                'binary' => 'text',
+                'blob' => 'text',
+                'json_array' => 'json',
+                'simple_array' => 'json',
+                'object' => 'json',
+            ];
         }
 
         return $types[$type] ?? $type;
@@ -205,15 +215,15 @@ class Generate extends Command
     protected function getMappedFakeData(string $type): string
     {
         $map = [
-            'integer'  => '$faker->numberBetween(1, 100)',
-            'string'   => '$faker->text(50)',
-            'text'     => '$faker->text()',
-            'boolean'  => '(int) $faker->boolean',
-            'float'    => '$faker->randomFloat(2, 0, 100)',
+            'integer' => '$faker->numberBetween(1, 100)',
+            'string' => '$faker->text(50)',
+            'text' => '$faker->text()',
+            'boolean' => '(int) $faker->boolean',
+            'float' => '$faker->randomFloat(2, 0, 100)',
             'datetime' => '$faker->dateTime',
-            'date'     => '$faker->date()',
-            'time'     => '$faker->time()',
-            'json'     => 'array_fill(0, 10, $faker->unique()->realText())',
+            'date' => '$faker->date()',
+            'time' => '$faker->time()',
+            'json' => 'array_fill(0, 10, $faker->unique()->realText())',
         ];
 
         return $map[$type] ?? 'null';
@@ -223,6 +233,7 @@ class Generate extends Command
      * @param array $models
      *
      * @return void
+     *
      * @throws \RuntimeException
      */
     protected function publishFactories(array $models)
@@ -300,6 +311,7 @@ class Generate extends Command
      * @param string $path
      *
      * @return void
+     *
      * @throws \RuntimeException
      */
     protected function makeSubdirectories(string $path)
@@ -311,6 +323,7 @@ class Generate extends Command
 
     /**
      * @return string
+     *
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     protected function getStubContent(): string
